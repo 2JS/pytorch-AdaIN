@@ -9,6 +9,7 @@ from torchvision.utils import save_image
 
 import net
 from function import adaptive_instance_normalization, coral
+import time
 
 
 def test_transform(size, crop):
@@ -124,10 +125,9 @@ vgg = nn.Sequential(*list(vgg.children())[:31])
 
 vgg.to(device)
 decoder.to(device)
-
 content_tf = test_transform(args.content_size, args.crop)
 style_tf = test_transform(args.style_size, args.crop)
-
+start_time1 = time.time()
 for content_path in content_paths:
     if do_interpolation:  # one content image, N style image
         style = torch.stack([style_tf(Image.open(str(p))) for p in style_paths])
@@ -135,11 +135,13 @@ for content_path in content_paths:
             .unsqueeze(0).expand_as(style)
         style = style.to(device)
         content = content.to(device)
+        start_time = time.time()
         with torch.no_grad():
             output = style_transfer(vgg, decoder, content, style,
                                     args.alpha, interpolation_weights)
+        print('style transfer time: ', time.time()-start_time)
         output = output.cpu()
-        output_name = output_dir / '{:s}_interpolation{:s}'.format(
+        output_name = output_dir/ '{:s}_interpolation{:s}'.format(
             content_path.stem, args.save_ext)
         save_image(output, str(output_name))
 
@@ -159,3 +161,4 @@ for content_path in content_paths:
             output_name = output_dir / '{:s}_stylized_{:s}{:s}'.format(
                 content_path.stem, style_path.stem, args.save_ext)
             save_image(output, str(output_name))
+print(time.time()-start_time1)
